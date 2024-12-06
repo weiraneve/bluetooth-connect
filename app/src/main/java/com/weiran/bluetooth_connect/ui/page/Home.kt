@@ -16,8 +16,11 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.weiran.bluetooth_connect.ui.theme.BluetoothconnectTheme
 
@@ -153,6 +157,15 @@ fun Home() {
             }
         }
 
+        // 停止扫描的函数
+        fun stopScan() {
+            if (isScanning) {
+                bluetoothLeScanner.stopScan(scanCallback)
+                isScanning = false
+                Log.i("BluetoothConnect", "停止扫描设备")
+            }
+        }
+
         // 扫描回调
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             Box(
@@ -161,23 +174,35 @@ fun Home() {
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Button(
-                    onClick = {
-                        try {
-                            if (!bluetoothAdapter.isEnabled) {
-                                Log.i("BluetoothConnect", "蓝牙未启用")
-                                return@Button
+                Row {
+                    Button(
+                        onClick = {
+                            try {
+                                if (!bluetoothAdapter.isEnabled) {
+                                    Log.i("BluetoothConnect", "蓝牙未启用")
+                                    return@Button
+                                }
+
+                                // 检查并请求权限
+                                checkAndRequestPermissions()
+
+                            } catch (e: Exception) {
+                                Log.e("BluetoothConnect", "蓝牙操作错误: ${e.message}")
                             }
+                        }
+                    ) {
+                        Text(text = if (isScanning) "正在扫描..." else "连接蓝牙")
+                    }
 
-                            // 检查并请求权限
-                            checkAndRequestPermissions()
-
-                        } catch (e: Exception) {
-                            Log.e("BluetoothConnect", "蓝牙操作错误: ${e.message}")
+                    // 当正在扫描时显示停止按钮
+                    if (isScanning) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = { stopScan() }
+                        ) {
+                            Text(text = "停止扫描")
                         }
                     }
-                ) {
-                    Text(text = if (isScanning) "正在扫描..." else "连接蓝牙")
                 }
             }
         }
