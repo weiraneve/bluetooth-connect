@@ -9,9 +9,12 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -35,6 +38,15 @@ fun Home() {
         val bluetoothLeScanner = remember { bluetoothAdapter.bluetoothLeScanner }
         var isScanning by remember { mutableStateOf(false) }
 
+        // 开始扫描的函数
+        fun startScan(scanner: BluetoothLeScanner, callback: ScanCallback) {
+            if (!isScanning) {
+                isScanning = true
+                scanner.startScan(callback)
+                Log.i("BluetoothConnect", "开始扫描设备")
+            }
+        }
+
         // GATT回调
         val gattCallback = remember {
             object : BluetoothGattCallback() {
@@ -55,16 +67,6 @@ fun Home() {
             }
         }
 
-        // 开始扫描的函数
-        fun startScan(scanner: BluetoothLeScanner, callback: ScanCallback) {
-            if (!isScanning) {
-                isScanning = true
-                scanner.startScan(callback)
-                Log.i("BluetoothConnect", "开始扫描设备")
-            }
-        }
-
-        // 扫描回调
         val scanCallback = remember {
             object : ScanCallback() {
                 override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -111,6 +113,47 @@ fun Home() {
             }
         }
 
+        // 权限请求启动器
+        val permissionLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val allPermissionsGranted = permissions.values.all { it }
+            if (allPermissionsGranted) {
+                // 权限获取成功，开始扫描
+                startScan(bluetoothLeScanner, scanCallback)
+            } else {
+                Log.e("BluetoothConnect", "未获得必要权限")
+            }
+        }
+
+        // 检查权限函数
+        fun checkAndRequestPermissions() {
+            val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            } else {
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            }
+
+            val missingPermissions = requiredPermissions.filter {
+                ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+            }.toTypedArray()
+
+            if (missingPermissions.isEmpty()) {
+                // 已经有所有权限，直接开始扫描
+                startScan(bluetoothLeScanner, scanCallback)
+            } else {
+                // 请求缺少的权限
+                permissionLauncher.launch(missingPermissions)
+            }
+        }
+
+        // 扫描回调
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             Box(
                 modifier = Modifier
@@ -126,8 +169,8 @@ fun Home() {
                                 return@Button
                             }
 
-                            // 开始扫描
-                            startScan(bluetoothLeScanner, scanCallback)
+                            // 检查并请求权限
+                            checkAndRequestPermissions()
 
                         } catch (e: Exception) {
                             Log.e("BluetoothConnect", "蓝牙操作错误: ${e.message}")
