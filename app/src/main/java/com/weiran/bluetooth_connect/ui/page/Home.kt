@@ -274,12 +274,10 @@ fun Home() {
                             Spacer(modifier = Modifier.width(8.dp))
 
                             Button(
-                                onClick = { sendCommand(0x0002) }
+                                onClick = { sendCommand(255) }
                             ) {
                                 Text(text = "指令2")
                             }
-
-                            // 可以根据需要添加更多指令按钮
                         }
                     }
                 }
