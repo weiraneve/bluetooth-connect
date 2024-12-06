@@ -1,9 +1,6 @@
 import android.Manifest
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
+import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
@@ -15,12 +12,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,6 +33,9 @@ fun Home() {
         val bluetoothAdapter = remember { bluetoothManager.adapter }
         val bluetoothLeScanner = remember { bluetoothAdapter.bluetoothLeScanner }
         var isScanning by remember { mutableStateOf(false) }
+        var writeCharacteristic: BluetoothGattCharacteristic? by remember { mutableStateOf(null) }
+        var isConnected by remember { mutableStateOf(false) }
+        var gattInstance: BluetoothGatt? by remember { mutableStateOf(null) }
 
         // 开始扫描的函数
         fun startScan(scanner: BluetoothLeScanner, callback: ScanCallback) {
@@ -58,16 +53,60 @@ fun Home() {
                     when (newState) {
                         BluetoothProfile.STATE_CONNECTED -> {
                             Log.i("BluetoothConnect", "连接成功")
-                            // 这里可以开始发现服务
+                            isConnected = true
+                            gattInstance = gatt
+                            // 连接成功后开始发现服务
                             gatt?.discoverServices()
                         }
 
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             Log.i("BluetoothConnect", "连接断开")
-                            // 处理断开连接的情况
+                            isConnected = false
+                            writeCharacteristic = null
                         }
                     }
                 }
+
+                override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        // 查找写特征
+                        gatt?.services?.forEach { service ->
+                            service.characteristics.forEach { characteristic ->
+                                if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) {
+                                    writeCharacteristic = characteristic
+                                    Log.i("BluetoothConnect", "找到写特征: ${characteristic.uuid}")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                override fun onCharacteristicWrite(
+                    gatt: BluetoothGatt?,
+                    characteristic: BluetoothGattCharacteristic?,
+                    status: Int
+                ) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.i("BluetoothConnect", "指令发送成功")
+                    } else {
+                        Log.e("BluetoothConnect", "指令发送失败")
+                    }
+                }
+            }
+        }
+
+        // 发送指令的函数
+        fun sendCommand(key: Int): Boolean {
+            val data = byteArrayOf((key shr 8).toByte(), key.toByte())
+            return try {
+                writeCharacteristic?.let { characteristic ->
+                    characteristic.value = data
+                    gattInstance?.writeCharacteristic(characteristic)
+                    true
+                } ?: false
+            } catch (e: Exception) {
+                Log.e("BluetoothConnect", "发送指令失败: ${e.message}")
+                false
             }
         }
 
@@ -174,33 +213,53 @@ fun Home() {
                     .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Row {
-                    Button(
-                        onClick = {
-                            try {
-                                if (!bluetoothAdapter.isEnabled) {
-                                    Log.i("BluetoothConnect", "蓝牙未启用")
-                                    return@Button
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row {
+                        // 原有的连接按钮
+                        Button(
+                            onClick = {
+                                try {
+                                    if (!bluetoothAdapter.isEnabled) {
+                                        Log.i("BluetoothConnect", "蓝牙未启用")
+                                        return@Button
+                                    }
+                                    checkAndRequestPermissions()
+                                } catch (e: Exception) {
+                                    Log.e("BluetoothConnect", "蓝牙操作错误: ${e.message}")
                                 }
+                            }
+                        ) {
+                            Text(text = if (isScanning) "正在扫描..." else "连接蓝牙")
+                        }
 
-                                // 检查并请求权限
-                                checkAndRequestPermissions()
-
-                            } catch (e: Exception) {
-                                Log.e("BluetoothConnect", "蓝牙操作错误: ${e.message}")
+                        if (isScanning) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(onClick = { stopScan() }) {
+                                Text(text = "停止扫描")
                             }
                         }
-                    ) {
-                        Text(text = if (isScanning) "正在扫描..." else "连接蓝牙")
                     }
 
-                    // 当正在扫描时显示停止按钮
-                    if (isScanning) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = { stopScan() }
-                        ) {
-                            Text(text = "停止扫描")
+                    // 只在连接成功且找到写特征时显示发送指令按钮
+                    if (isConnected && writeCharacteristic != null) {
+                        Spacer(modifier = Modifier.run { height(16.dp) })
+                        Row {
+                            // 示例：发送不同指令的按钮
+                            Button(
+                                onClick = { sendCommand(0x0001) }
+                            ) {
+                                Text(text = "指令1")
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Button(
+                                onClick = { sendCommand(0x0002) }
+                            ) {
+                                Text(text = "指令2")
+                            }
+
+                            // 可以根据需要添加更多指令按钮
                         }
                     }
                 }
