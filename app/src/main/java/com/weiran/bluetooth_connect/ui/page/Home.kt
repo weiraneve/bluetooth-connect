@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.weiran.bluetooth_connect.ui.theme.BluetoothconnectTheme
+import java.util.*
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -36,6 +37,8 @@ fun Home() {
         var writeCharacteristic: BluetoothGattCharacteristic? by remember { mutableStateOf(null) }
         var isConnected by remember { mutableStateOf(false) }
         var gattInstance: BluetoothGatt? by remember { mutableStateOf(null) }
+        val serviceUuid = UUID.fromString("0000FFE5-0000-1000-8000-00805f9b34fb")
+        val characteristicWriteUuid = UUID.fromString("0000FFE9-0000-1000-8000-00805f9b34fb")
 
         // 开始扫描的函数
         fun startScan(scanner: BluetoothLeScanner, callback: ScanCallback) {
@@ -69,14 +72,18 @@ fun Home() {
 
                 override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
                     if (status == BluetoothGatt.GATT_SUCCESS) {
-                        // 查找写特征
-                        gatt?.services?.forEach { service ->
-                            service.characteristics.forEach { characteristic ->
-                                if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) {
-                                    writeCharacteristic = characteristic
-                                    Log.i("BluetoothConnect", "找到写特征: ${characteristic.uuid}")
-                                }
+                        // 获取指定服务
+                        val service = gatt?.getService(serviceUuid)
+                        if (service != null) {
+                            // 获取指定写特征
+                            writeCharacteristic = service.getCharacteristic(characteristicWriteUuid)
+                            if (writeCharacteristic != null) {
+                                Log.i("BluetoothConnect", "找到写特征")
+                            } else {
+                                Log.e("BluetoothConnect", "未找到写特征")
                             }
+                        } else {
+                            Log.e("BluetoothConnect", "未找到服务")
                         }
                     }
                 }
@@ -100,9 +107,16 @@ fun Home() {
             val data = byteArrayOf((key shr 8).toByte(), key.toByte())
             return try {
                 writeCharacteristic?.let { characteristic ->
-                    characteristic.value = data
-                    gattInstance?.writeCharacteristic(characteristic)
-                    true
+                    val properties = characteristic.properties
+                    if (properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) {
+                        characteristic.value = data
+                        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                        gattInstance?.writeCharacteristic(characteristic)
+                        true
+                    } else {
+                        Log.e("BluetoothConnect", "特征不支持写入操作")
+                        false
+                    }
                 } ?: false
             } catch (e: Exception) {
                 Log.e("BluetoothConnect", "发送指令失败: ${e.message}")
@@ -244,9 +258,15 @@ fun Home() {
                     if (isConnected && writeCharacteristic != null) {
                         Spacer(modifier = Modifier.run { height(16.dp) })
                         Row {
-                            // 示例：发送不同指令的按钮
                             Button(
-                                onClick = { sendCommand(0x0001) }
+                                onClick = {
+                                    val success = sendCommand(1)
+                                    if (success) {
+                                        Log.i("BluetoothConnect", "指令1发送成功")
+                                    } else {
+                                        Log.e("BluetoothConnect", "指令1发送失败")
+                                    }
+                                }
                             ) {
                                 Text(text = "指令1")
                             }
