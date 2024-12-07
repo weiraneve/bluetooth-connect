@@ -1,6 +1,6 @@
 package com.weiran.bluetooth_connect
 
-import Home
+import com.weiran.bluetooth_connect.ui.page.Home
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent

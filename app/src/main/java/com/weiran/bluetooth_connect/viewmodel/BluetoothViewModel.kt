@@ -1,3 +1,5 @@
+package com.weiran.bluetooth_connect.viewmodel
+
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
@@ -97,16 +99,8 @@ class BluetoothViewModel : ViewModel() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun stopScan(bluetoothLeScanner: BluetoothLeScanner) {
-        if (_isScanning.value) {
-            bluetoothLeScanner.stopScan(scanCallback)
-            _isScanning.value = false
-            Log.i("BluetoothConnect", "停止扫描设备")
-        }
-    }
-
     private val scanCallback = object : ScanCallback() {
+
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val device = result.device
@@ -118,7 +112,7 @@ class BluetoothViewModel : ViewModel() {
                 (deviceName.contains("Ao") || deviceName.contains("ao"))
             ) {
 
-                stopScan()  // 使用修改后的stopScan方法
+                stopScan()
 
                 Handler(Looper.getMainLooper()).postDelayed({
                     try {
@@ -138,6 +132,7 @@ class BluetoothViewModel : ViewModel() {
     }
 
     @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION")
     fun sendCommand(key: Int): Boolean {
         val data = byteArrayOf((key shr 8).toByte(), key.toByte())
         return try {
@@ -152,7 +147,7 @@ class BluetoothViewModel : ViewModel() {
                     Log.e("BluetoothConnect", "特征不支持写入操作")
                     false
                 }
-            } ?: false
+            } == true
         } catch (e: Exception) {
             Log.e("BluetoothConnect", "发送指令失败: ${e.message}")
             false

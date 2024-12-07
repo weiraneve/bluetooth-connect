@@ -1,3 +1,5 @@
+package com.weiran.bluetooth_connect.ui.page
+
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.weiran.bluetooth_connect.ui.theme.BluetoothconnectTheme
+import com.weiran.bluetooth_connect.viewmodel.BluetoothViewModel
 
 @SuppressLint("MissingPermission")
 @Composable
