@@ -59,12 +59,22 @@ class BluetoothViewModel : ViewModel() {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun stopScanWhenConnected() {
+        if (_connectionState.value == ConnectionState.Connecting) {
+            bluetoothLeScanner?.let { scanner ->
+                scanner.stopScan(scanCallback)
+                Log.i("BluetoothConnect", "连接成功，停止扫描设备")
+            }
+        }
+    }
+
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    _connectionState.value = ConnectionState.Connected
+                    _connectionState.value = ConnectionState.Connecting
                     bluetoothGatt = gatt
                     gatt?.discoverServices()
                     Log.i("BluetoothConnect", "连接成功")
@@ -84,12 +94,15 @@ class BluetoothViewModel : ViewModel() {
                 if (service != null) {
                     writeCharacteristic = service.getCharacteristic(UUID.fromString(CHARACTERISTIC_WRITE_UUID))
                     if (writeCharacteristic != null) {
-                        Log.i("BluetoothConnect", "找到写特征")
+                        _connectionState.value = ConnectionState.Connected
+                        Log.i("BluetoothConnect", "找到写特征，连接完成")
                     } else {
                         Log.e("BluetoothConnect", "未找到写特征")
+                        _connectionState.value = ConnectionState.Disconnected
                     }
                 } else {
                     Log.e("BluetoothConnect", "未找到服务")
+                    _connectionState.value = ConnectionState.Disconnected
                 }
             }
         }
@@ -108,7 +121,7 @@ class BluetoothViewModel : ViewModel() {
                 (deviceName.contains("Ao") || deviceName.contains("ao"))
             ) {
 
-                stopScan()
+                stopScanWhenConnected()
 
                 Handler(Looper.getMainLooper()).postDelayed({
                     try {
