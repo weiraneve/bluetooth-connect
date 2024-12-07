@@ -15,14 +15,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.weiran.bluetooth_connect.common.obj.ConnectionState
 import com.weiran.bluetooth_connect.ui.theme.BluetoothconnectTheme
 import com.weiran.bluetooth_connect.viewmodel.BluetoothViewModel
 
@@ -35,10 +36,8 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
         val bluetoothAdapter = remember { bluetoothManager.adapter }
         val bluetoothLeScanner = remember { bluetoothAdapter.bluetoothLeScanner }
 
-        val isScanning by viewModel.isScanning
-        val isConnected by viewModel.isConnected
+        val connectionState = viewModel.connectionState.collectAsStateWithLifecycle().value
 
-        // 初始化 ViewModel
         LaunchedEffect(Unit) {
             viewModel.initialize(context, bluetoothLeScanner)
         }
@@ -102,10 +101,16 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                                 }
                             }
                         ) {
-                            Text(text = if (isScanning) "正在扫描..." else "连接蓝牙")
+                            Text(
+                                text = when (connectionState) {
+                                    ConnectionState.Connected -> "已连接"
+                                    ConnectionState.Connecting -> "正在扫描..."
+                                    ConnectionState.Disconnected -> "连接蓝牙"
+                                }
+                            )
                         }
 
-                        if (isScanning) {
+                        if (connectionState == ConnectionState.Connecting) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = { viewModel.stopScan() }
@@ -115,7 +120,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                         }
                     }
 
-                    if (isConnected) {
+                    if (connectionState == ConnectionState.Connected) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Row {
                             Button(
@@ -127,7 +132,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                             Spacer(modifier = Modifier.width(8.dp))
 
                             Button(
-                                onClick = { viewModel.sendCommand(255) }
+                                onClick = { viewModel.sendCommand(2) }
                             ) {
                                 Text(text = "指令2")
                             }

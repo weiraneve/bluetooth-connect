@@ -12,18 +12,19 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import com.weiran.bluetooth_connect.common.obj.ConnectionState
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
 class BluetoothViewModel : ViewModel() {
-    private val _isScanning = mutableStateOf(false)
-    val isScanning: State<Boolean> = _isScanning
+    private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
+    val connectionState: StateFlow<ConnectionState> = _connectionState
 
-    private val _isConnected = mutableStateOf(false)
-    val isConnected: State<Boolean> = _isConnected
-
+    @SuppressLint("StaticFieldLeak")
+    private var context: Context? = null
+    private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var bluetoothGatt: BluetoothGatt? = null
     private var writeCharacteristic: BluetoothGattCharacteristic? = null
 
@@ -32,11 +33,6 @@ class BluetoothViewModel : ViewModel() {
         private const val CHARACTERISTIC_WRITE_UUID = "0000FFE9-0000-1000-8000-00805f9b34fb"
     }
 
-    @SuppressLint("StaticFieldLeak")
-    private var context: Context? = null
-
-    private var bluetoothLeScanner: BluetoothLeScanner? = null
-
     fun initialize(context: Context, scanner: BluetoothLeScanner) {
         this.context = context
         this.bluetoothLeScanner = scanner
@@ -44,9 +40,9 @@ class BluetoothViewModel : ViewModel() {
 
     @SuppressLint("MissingPermission")
     fun startScan(scanner: BluetoothLeScanner) {
-        if (!_isScanning.value) {
-            _isScanning.value = true
-            bluetoothLeScanner = scanner  // 保存scanner引用
+        if (_connectionState.value == ConnectionState.Disconnected) {
+            _connectionState.value = ConnectionState.Connecting
+            bluetoothLeScanner = scanner
             scanner.startScan(scanCallback)
             Log.i("BluetoothConnect", "开始扫描设备")
         }
@@ -54,10 +50,10 @@ class BluetoothViewModel : ViewModel() {
 
     @SuppressLint("MissingPermission")
     fun stopScan() {
-        if (_isScanning.value) {
+        if (_connectionState.value == ConnectionState.Connecting) {
             bluetoothLeScanner?.let { scanner ->
                 scanner.stopScan(scanCallback)
-                _isScanning.value = false
+                _connectionState.value = ConnectionState.Disconnected
                 Log.i("BluetoothConnect", "停止扫描设备")
             }
         }
@@ -68,14 +64,14 @@ class BluetoothViewModel : ViewModel() {
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    _isConnected.value = true
+                    _connectionState.value = ConnectionState.Connected
                     bluetoothGatt = gatt
                     gatt?.discoverServices()
                     Log.i("BluetoothConnect", "连接成功")
                 }
 
                 BluetoothProfile.STATE_DISCONNECTED -> {
-                    _isConnected.value = false
+                    _connectionState.value = ConnectionState.Disconnected
                     writeCharacteristic = null
                     Log.i("BluetoothConnect", "连接断开")
                 }
