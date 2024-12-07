@@ -104,7 +104,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                             Text(
                                 text = when (connectionState) {
                                     ConnectionState.Connected -> "已连接"
-                                    ConnectionState.Connecting -> "正在扫描..."
+                                    ConnectionState.Connecting -> "正在连接..."
                                     ConnectionState.Disconnected -> "连接蓝牙"
                                 }
                             )
@@ -132,7 +132,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                             Spacer(modifier = Modifier.width(8.dp))
 
                             Button(
-                                onClick = { viewModel.sendCommand(2) }
+                                onClick = { viewModel.sendCommand(255) }
                             ) {
                                 Text(text = "指令2")
                             }
