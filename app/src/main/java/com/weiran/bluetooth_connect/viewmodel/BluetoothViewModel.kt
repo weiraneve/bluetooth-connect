@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
@@ -28,6 +29,9 @@ class BluetoothViewModel : ViewModel() {
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var bluetoothGatt: BluetoothGatt? = null
     private var writeCharacteristic: BluetoothGattCharacteristic? = null
+
+    private var batteryCharacteristic: BluetoothGattCharacteristic? = null
+    private val _batteryLevel = MutableStateFlow(0)
 
     fun initialize(context: Context, scanner: BluetoothLeScanner) {
         this.context = context
@@ -84,23 +88,94 @@ class BluetoothViewModel : ViewModel() {
             }
         }
 
+        @Suppress("DEPRECATION")
+        @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 val service = gatt?.getService(UUID.fromString(Constants.SERVICE_UUID))
                 if (service != null) {
                     writeCharacteristic =
                         service.getCharacteristic(UUID.fromString(Constants.CHARACTERISTIC_WRITE_UUID))
-                    if (writeCharacteristic != null) {
+                    batteryCharacteristic =
+                        service.getCharacteristic(UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY))
+
+                    Log.d("BluetoothConnect", "找到电量特征: ${batteryCharacteristic != null}")
+
+                    if (writeCharacteristic != null && batteryCharacteristic != null) {
+                        val success = gatt.setCharacteristicNotification(batteryCharacteristic, true)
+                        Log.d("BluetoothConnect", "设置电量通知: $success")
+
+                        batteryCharacteristic?.let { characteristic ->
+                            val descriptor = characteristic.getDescriptor(
+                                UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                            )
+                            descriptor?.let {
+                                it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                                gatt.writeDescriptor(it)
+                                Log.d("BluetoothConnect", "写入通知描述符")
+                            }
+
+                            gatt.readCharacteristic(characteristic)
+                            Log.d("BluetoothConnect", "尝试读取电量特征值")
+                        }
+
                         _connectionState.value = ConnectionState.Connected
-                        Log.i("BluetoothConnect", "找到写特征，连接完成")
+                        Log.i("BluetoothConnect", "找到所需特征，连接完成")
                     } else {
-                        Log.e("BluetoothConnect", "未找到写特征")
+                        Log.e("BluetoothConnect", "未找到必要的特征")
                         _connectionState.value = ConnectionState.Disconnected
                     }
                 } else {
                     Log.e("BluetoothConnect", "未找到服务")
                     _connectionState.value = ConnectionState.Disconnected
                 }
+            }
+        }
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d("BluetoothConnect", "读取特征值成功: ${characteristic.uuid}")
+                Log.d("BluetoothConnect", "读取到的数据: ${value.contentToString()}")
+
+                if (characteristic.uuid == UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)) {
+                    val batteryValue = value[0].toInt() and 0xFF
+                    _batteryLevel.value = batteryValue
+                    Log.i("BluetoothConnect", "读取到电量: $batteryValue%")
+                }
+            } else {
+                Log.e("BluetoothConnect", "读取特征值失败: $status")
+            }
+        }
+
+        override fun onCharacteristicChanged(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray
+        ) {
+            Log.d("BluetoothConnect", "收到特征变化通知: ${characteristic.uuid}")
+            Log.d("BluetoothConnect", "数据内容: ${value.contentToString()}")
+
+            if (characteristic.uuid == UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)) {
+                val batteryValue = value[0].toInt() and 0xFF
+                _batteryLevel.value = batteryValue
+                Log.i("BluetoothConnect", "电量: $batteryValue%")
+            }
+        }
+
+        override fun onDescriptorWrite(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d("BluetoothConnect", "通知描述符写入成功")
+            } else {
+                Log.e("BluetoothConnect", "通知描述符写入失败: $status")
             }
         }
     }
