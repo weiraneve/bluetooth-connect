@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -125,36 +126,115 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                 }
 
                 if (connectionState == ConnectionState.Connected) {
-                    Spacer(modifier = Modifier.height(16.dp))
                     Row {
-                        Button(
-                            onClick = { viewModel.sendCommand(1) }
-                        ) {
-                            Text(text = "指令1")
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_stop),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(255) },
+                            contentScale = ContentScale.Fit
+                        )
+                    }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row {
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_one_heart),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(11) },
+                            contentScale = ContentScale.Fit
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = { viewModel.sendCommand(255) }
-                        ) {
-                            Text(text = "指令2")
-                        }
-
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_two_hearts),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(2) },
+                            contentScale = ContentScale.Fit
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = { viewModel.sendCommand(5) }
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.auto_mode1),
-                                contentDescription = "指令3",
-                                modifier = Modifier.size(48.dp),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_three_hearts),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(3) },
+                            contentScale = ContentScale.Fit
+                        )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
+                    Row {
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture0),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(4) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture1),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(5) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture2),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(6) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture3),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(7) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture4),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(8) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture5),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(9) },
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Image(
+                            painter = painterResource(id = R.drawable.mode_posture6),
+                            contentDescription = "",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable { viewModel.sendCommand(10) },
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Text(
                         text = "电量: $batteryLevel%",
                         style = MaterialTheme.typography.bodyLarge
