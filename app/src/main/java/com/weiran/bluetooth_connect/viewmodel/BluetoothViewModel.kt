@@ -1,5 +1,6 @@
 package com.weiran.bluetooth_connect.viewmodel
 
+import Constants
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
@@ -27,11 +28,6 @@ class BluetoothViewModel : ViewModel() {
     private var bluetoothLeScanner: BluetoothLeScanner? = null
     private var bluetoothGatt: BluetoothGatt? = null
     private var writeCharacteristic: BluetoothGattCharacteristic? = null
-
-    companion object {
-        private const val SERVICE_UUID = "0000FFE5-0000-1000-8000-00805f9b34fb"
-        private const val CHARACTERISTIC_WRITE_UUID = "0000FFE9-0000-1000-8000-00805f9b34fb"
-    }
 
     fun initialize(context: Context, scanner: BluetoothLeScanner) {
         this.context = context
@@ -90,9 +86,10 @@ class BluetoothViewModel : ViewModel() {
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                val service = gatt?.getService(UUID.fromString(SERVICE_UUID))
+                val service = gatt?.getService(UUID.fromString(Constants.SERVICE_UUID))
                 if (service != null) {
-                    writeCharacteristic = service.getCharacteristic(UUID.fromString(CHARACTERISTIC_WRITE_UUID))
+                    writeCharacteristic =
+                        service.getCharacteristic(UUID.fromString(Constants.CHARACTERISTIC_WRITE_UUID))
                     if (writeCharacteristic != null) {
                         _connectionState.value = ConnectionState.Connected
                         Log.i("BluetoothConnect", "找到写特征，连接完成")
