@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
         val bluetoothLeScanner = remember { bluetoothAdapter.bluetoothLeScanner }
 
         val connectionState = viewModel.connectionState.collectAsStateWithLifecycle().value
+        val batteryLevel = viewModel.batteryLevel.collectAsStateWithLifecycle().value
 
         LaunchedEffect(Unit) {
             viewModel.initialize(context, bluetoothLeScanner)
@@ -137,6 +139,11 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                                 Text(text = "指令2")
                             }
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "电量: $batteryLevel%",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                     }
                 }
             }

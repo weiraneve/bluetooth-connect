@@ -28,6 +28,7 @@ class BluetoothViewModel : ViewModel() {
 
     private var batteryCharacteristic: BluetoothGattCharacteristic? = null
     private val _batteryLevel = MutableStateFlow(0)
+    val batteryLevel: StateFlow<Int> = _batteryLevel
 
     companion object {
         private const val TAG = "BluetoothViewModel"
