@@ -100,15 +100,13 @@ class BluetoothViewModel : ViewModel() {
                     batteryCharacteristic =
                         service.getCharacteristic(UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY))
 
-                    Log.d(TAG, "找到电量特征: ${batteryCharacteristic != null}")
-
                     if (writeCharacteristic != null && batteryCharacteristic != null) {
                         val success = gatt.setCharacteristicNotification(batteryCharacteristic, true)
                         Log.d(TAG, "设置电量通知: $success")
 
                         batteryCharacteristic?.let { characteristic ->
                             val descriptor = characteristic.getDescriptor(
-                                UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+                                UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)
                             )
                             descriptor?.let {
                                 it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
@@ -117,7 +115,6 @@ class BluetoothViewModel : ViewModel() {
                             }
 
                             gatt.readCharacteristic(characteristic)
-                            Log.d(TAG, "尝试读取电量特征值")
                         }
 
                         _connectionState.value = ConnectionState.Connected
@@ -140,9 +137,6 @@ class BluetoothViewModel : ViewModel() {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "读取特征值成功: ${characteristic.uuid}")
-                Log.d(TAG, "读取到的数据: ${value.contentToString()}")
-
                 if (characteristic.uuid == UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)) {
                     val batteryValue = value[0].toInt() and 0xFF
                     _batteryLevel.value = batteryValue
