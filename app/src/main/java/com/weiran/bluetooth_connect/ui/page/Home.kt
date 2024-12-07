@@ -138,6 +138,14 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                             ) {
                                 Text(text = "指令2")
                             }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Button(
+                                onClick = { viewModel.sendCommand(5) }
+                            ) {
+                                Text(text = "指令3")
+                            }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
