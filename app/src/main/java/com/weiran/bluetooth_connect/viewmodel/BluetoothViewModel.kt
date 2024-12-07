@@ -2,11 +2,7 @@ package com.weiran.bluetooth_connect.viewmodel
 
 import Constants
 import android.annotation.SuppressLint
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothProfile
+import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
@@ -33,6 +29,10 @@ class BluetoothViewModel : ViewModel() {
     private var batteryCharacteristic: BluetoothGattCharacteristic? = null
     private val _batteryLevel = MutableStateFlow(0)
 
+    companion object {
+        private const val TAG = "BluetoothViewModel"
+    }
+
     fun initialize(context: Context, scanner: BluetoothLeScanner) {
         this.context = context
         this.bluetoothLeScanner = scanner
@@ -44,7 +44,7 @@ class BluetoothViewModel : ViewModel() {
             _connectionState.value = ConnectionState.Connecting
             bluetoothLeScanner = scanner
             scanner.startScan(scanCallback)
-            Log.i("BluetoothConnect", "开始扫描设备")
+            Log.i(TAG, "开始扫描设备")
         }
     }
 
@@ -54,7 +54,7 @@ class BluetoothViewModel : ViewModel() {
             bluetoothLeScanner?.let { scanner ->
                 scanner.stopScan(scanCallback)
                 _connectionState.value = ConnectionState.Disconnected
-                Log.i("BluetoothConnect", "停止扫描设备")
+                Log.i(TAG, "停止扫描设备")
             }
         }
     }
@@ -64,7 +64,7 @@ class BluetoothViewModel : ViewModel() {
         if (_connectionState.value == ConnectionState.Connecting) {
             bluetoothLeScanner?.let { scanner ->
                 scanner.stopScan(scanCallback)
-                Log.i("BluetoothConnect", "连接成功，停止扫描设备")
+                Log.i(TAG, "连接成功，停止扫描设备")
             }
         }
     }
@@ -77,13 +77,13 @@ class BluetoothViewModel : ViewModel() {
                     _connectionState.value = ConnectionState.Connecting
                     bluetoothGatt = gatt
                     gatt?.discoverServices()
-                    Log.i("BluetoothConnect", "连接成功")
+                    Log.i(TAG, "连接成功")
                 }
 
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     _connectionState.value = ConnectionState.Disconnected
                     writeCharacteristic = null
-                    Log.i("BluetoothConnect", "连接断开")
+                    Log.i(TAG, "连接断开")
                 }
             }
         }
@@ -99,11 +99,11 @@ class BluetoothViewModel : ViewModel() {
                     batteryCharacteristic =
                         service.getCharacteristic(UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY))
 
-                    Log.d("BluetoothConnect", "找到电量特征: ${batteryCharacteristic != null}")
+                    Log.d(TAG, "找到电量特征: ${batteryCharacteristic != null}")
 
                     if (writeCharacteristic != null && batteryCharacteristic != null) {
                         val success = gatt.setCharacteristicNotification(batteryCharacteristic, true)
-                        Log.d("BluetoothConnect", "设置电量通知: $success")
+                        Log.d(TAG, "设置电量通知: $success")
 
                         batteryCharacteristic?.let { characteristic ->
                             val descriptor = characteristic.getDescriptor(
@@ -112,21 +112,21 @@ class BluetoothViewModel : ViewModel() {
                             descriptor?.let {
                                 it.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                                 gatt.writeDescriptor(it)
-                                Log.d("BluetoothConnect", "写入通知描述符")
+                                Log.d(TAG, "写入通知描述符")
                             }
 
                             gatt.readCharacteristic(characteristic)
-                            Log.d("BluetoothConnect", "尝试读取电量特征值")
+                            Log.d(TAG, "尝试读取电量特征值")
                         }
 
                         _connectionState.value = ConnectionState.Connected
-                        Log.i("BluetoothConnect", "找到所需特征，连接完成")
+                        Log.i(TAG, "找到所需特征，连接完成")
                     } else {
-                        Log.e("BluetoothConnect", "未找到必要的特征")
+                        Log.e(TAG, "未找到必要的特征")
                         _connectionState.value = ConnectionState.Disconnected
                     }
                 } else {
-                    Log.e("BluetoothConnect", "未找到服务")
+                    Log.e(TAG, "未找到服务")
                     _connectionState.value = ConnectionState.Disconnected
                 }
             }
@@ -139,16 +139,16 @@ class BluetoothViewModel : ViewModel() {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d("BluetoothConnect", "读取特征值成功: ${characteristic.uuid}")
-                Log.d("BluetoothConnect", "读取到的数据: ${value.contentToString()}")
+                Log.d(TAG, "读取特征值成功: ${characteristic.uuid}")
+                Log.d(TAG, "读取到的数据: ${value.contentToString()}")
 
                 if (characteristic.uuid == UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)) {
                     val batteryValue = value[0].toInt() and 0xFF
                     _batteryLevel.value = batteryValue
-                    Log.i("BluetoothConnect", "读取到电量: $batteryValue%")
+                    Log.i(TAG, "读取到电量: $batteryValue%")
                 }
             } else {
-                Log.e("BluetoothConnect", "读取特征值失败: $status")
+                Log.e(TAG, "读取特征值失败: $status")
             }
         }
 
@@ -157,13 +157,13 @@ class BluetoothViewModel : ViewModel() {
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            Log.d("BluetoothConnect", "收到特征变化通知: ${characteristic.uuid}")
-            Log.d("BluetoothConnect", "数据内容: ${value.contentToString()}")
+            Log.d(TAG, "收到特征变化通知: ${characteristic.uuid}")
+            Log.d(TAG, "数据内容: ${value.contentToString()}")
 
             if (characteristic.uuid == UUID.fromString(Constants.CHARACTERISTIC_READ_NOTIFY)) {
                 val batteryValue = value[0].toInt() and 0xFF
                 _batteryLevel.value = batteryValue
-                Log.i("BluetoothConnect", "电量: $batteryValue%")
+                Log.i(TAG, "电量: $batteryValue%")
             }
         }
 
@@ -173,9 +173,9 @@ class BluetoothViewModel : ViewModel() {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d("BluetoothConnect", "通知描述符写入成功")
+                Log.d(TAG, "通知描述符写入成功")
             } else {
-                Log.e("BluetoothConnect", "通知描述符写入失败: $status")
+                Log.e(TAG, "通知描述符写入失败: $status")
             }
         }
     }
@@ -197,12 +197,12 @@ class BluetoothViewModel : ViewModel() {
 
                 Handler(Looper.getMainLooper()).postDelayed({
                     try {
-                        Log.i("BluetoothConnect", "正在连接设备: $deviceName ($deviceAddress)")
+                        Log.i(TAG, "正在连接设备: $deviceName ($deviceAddress)")
                         context?.let { ctx ->
                             device.connectGatt(ctx, false, gattCallback)
                         }
                     } catch (e: Exception) {
-                        Log.e("BluetoothConnect", "连接失败: ${e.message}")
+                        Log.e(TAG, "连接失败: ${e.message}")
                         bluetoothLeScanner?.let { scanner ->
                             startScan(scanner)
                         }
@@ -225,12 +225,12 @@ class BluetoothViewModel : ViewModel() {
                     bluetoothGatt?.writeCharacteristic(characteristic)
                     true
                 } else {
-                    Log.e("BluetoothConnect", "特征不支持写入操作")
+                    Log.e(TAG, "特征不支持写入操作")
                     false
                 }
             } == true
         } catch (e: Exception) {
-            Log.e("BluetoothConnect", "发送指令失败: ${e.message}")
+            Log.e(TAG, "发送指令失败: ${e.message}")
             false
         }
     }
