@@ -1,6 +1,6 @@
 package com.weiran.bluetooth_connect.viewmodel
 
-import Constants
+import com.weiran.bluetooth_connect.common.Constants
 import android.annotation.SuppressLint
 import android.bluetooth.*
 import android.bluetooth.le.BluetoothLeScanner
