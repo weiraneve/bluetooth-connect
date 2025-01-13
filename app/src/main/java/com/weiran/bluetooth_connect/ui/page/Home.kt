@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -46,7 +47,9 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
     val batteryLevel = viewModel.batteryLevel.collectAsStateWithLifecycle().value
 
     LaunchedEffect(Unit) {
-        viewModel.initialize(context, bluetoothLeScanner)
+        if (bluetoothAdapter?.isEnabled == true && bluetoothLeScanner != null) {
+            viewModel.initialize(context, bluetoothLeScanner)
+        }
     }
 
     // 权限请求启动器
@@ -55,7 +58,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
     ) { permissions ->
         val allPermissionsGranted = permissions.values.all { it }
         if (allPermissionsGranted) {
-            viewModel.startScan(bluetoothLeScanner)
+            bluetoothLeScanner?.let { viewModel.startScan(it) }
         } else {
             Log.e("BluetoothConnect", "未获得必要权限")
         }
@@ -80,7 +83,7 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
         }.toTypedArray()
 
         if (missingPermissions.isEmpty()) {
-            viewModel.startScan(bluetoothLeScanner)
+            bluetoothLeScanner?.let { viewModel.startScan(it) }
         } else {
             permissionLauncher.launch(missingPermissions)
         }
@@ -99,8 +102,18 @@ fun Home(viewModel: BluetoothViewModel = viewModel()) {
                     Button(
                         onClick = {
                             try {
+                                if (bluetoothAdapter == null) {
+                                    Log.e("BluetoothConnect", "设备不支持蓝牙")
+                                    Toast.makeText(context, "蓝牙连接错误", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
                                 if (!bluetoothAdapter.isEnabled) {
                                     Log.i("BluetoothConnect", "蓝牙未启用")
+                                    Toast.makeText(context, "请连接蓝牙", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (bluetoothLeScanner == null) {
+                                    Log.e("BluetoothConnect", "蓝牙LE扫描器不可用")
                                     return@Button
                                 }
                                 checkAndRequestPermissions()
